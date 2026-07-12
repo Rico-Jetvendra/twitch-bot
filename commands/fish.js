@@ -10,16 +10,82 @@ module.exports = function(client) {
             return;
         }
 
-        const phase1 = await api.post('/phase1', {
-            twitchId: tags['user_id']
-        });
-
-        if(phase1[0].status == 'error'){
-            client.say(channel, result[0].message);
-        }
-
-        const fish = phase1[0].fish;
-        
-        // client.say(channel, result[0].message);
+        await startFishing(client, channel, tags);
     });
 };
+
+async function startFishing(client, channel, tags){
+    const randomDelay  = random(1000, 5000);
+    const phase1Result = await phase1(client, channel, tags);
+
+    if (phase1Result.finish) {
+        sendChat(client, channel, tags ,phase1Result.message);
+        return;
+    }
+
+    sendChat(client, channel, tags ,"A large shadow approaching your bait.");
+    setTimeout(async () => {
+        await phase2(client, channel, tags, phase1Result.result);
+    }, randomDelay);
+}
+
+async function phase1(client, channel, tags) {
+    const result = await api.post('/phase1', {
+        twitchId: tags['user-id'],
+        username: tags.username,
+        display_name: tags['display-name'],
+    });
+
+    if(result.status == 'error'){
+        return {finish: true, 'message': result.message};
+    }
+
+    const whitelistFish = [1,2];
+    const fish          = result.fish;
+    
+    const finish = whitelistFish.includes(fish.fish_rarity_id);
+    if(finish){
+        const finishResult = await api.post('/finish', {
+            twitchId: tags['user-id'],
+            catch: result
+        });
+
+        return {finish: true, 'message': finishResult.message};
+    }
+
+    return {finish: false, result: result};
+}
+
+async function phase2(client, channel, tags, result) {
+    const phase2 = await api.post('/phase2', {
+        twitchId: tags['user-id'],
+        catch: result
+    });
+    
+    if(phase2.status == 'error'){
+        sendChat(client, channel, tags ,phase2.message);
+        return;
+    }
+
+    sendChat(client, channel, tags ,phase2.message);
+    setTimeout(async () => {
+        sendChat(client, channel, tags ,phase2.fish.fish.fish_name + " is trashing around the water!");
+
+        setTimeout(async () => {
+            const phase3 = await api.post('/phase3', {
+                twitchId: tags['user-id'],
+                catch: result
+            });
+
+            sendChat(client, channel, tags ,phase3.message);
+        }, random(1000, 5000));
+    }, random(1000, 2000));
+}
+
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function sendChat(client, channel, tags ,chat){
+    client.say(channel, "@"+tags['display-name']+" "+chat);
+}

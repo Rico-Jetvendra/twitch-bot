@@ -15,6 +15,6 @@ module.exports = function(client) {
             message: text[1]
         });
         
-        client.say(channel, result[0].message);
+        client.say(channel, result.message);
     });
 };

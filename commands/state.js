@@ -12,6 +12,6 @@ module.exports = function(client) {
 
         const result = await api.get('/state');
         
-        client.say(channel, result[0].message);
+        client.say(channel, result.message);
     });
 };
