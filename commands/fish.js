@@ -1,6 +1,6 @@
 const api = require('../services/api');
 
-module.exports = function(client) {
+module.exports = function(client, io) {
     client.on('message', async (channel, tags, message, self) => {
         if (self) return;
 
@@ -10,16 +10,16 @@ module.exports = function(client) {
             return;
         }
 
-        await startFishing(client, channel, tags);
+        await startFishing(client, channel, tags, io);
     });
 };
 
-async function startFishing(client, channel, tags){
+async function startFishing(client, channel, tags, io){
     const randomDelay  = random(1000, 5000);
-    const phase1Result = await phase1(client, channel, tags);
+    const phase1Result = await phase1(client, channel, tags, io);
 
     if (phase1Result.finish) {
-        sendChat(client, channel, tags ,phase1Result.message);
+        sendChat(client, channel, tags, phase1Result.message);
         return;
     }
 
@@ -29,7 +29,7 @@ async function startFishing(client, channel, tags){
     }, randomDelay);
 }
 
-async function phase1(client, channel, tags) {
+async function phase1(client, channel, tags, io) {
     const result = await api.post('/phase1', {
         twitchId: tags['user-id'],
         username: tags.username,
@@ -52,6 +52,7 @@ async function phase1(client, channel, tags) {
 
         await api.put('/bait/'+tags['user-id']);
 
+        io.emit("recordUpdated", finishResult.overlays);
         return {finish: true, 'message': finishResult.message};
     }
 
@@ -79,7 +80,8 @@ async function phase2(client, channel, tags, result) {
                 catch: result
             });
 
-            sendChat(client, channel, tags ,phase3.message);
+            io.emit("recordUpdated", phase3.overlays);
+            sendChat(client, channel, tags, phase3.message);
         }, random(1000, 5000));
     }, random(1000, 2000));
 }
