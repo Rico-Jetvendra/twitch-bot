@@ -50,6 +50,8 @@ async function phase1(client, channel, tags) {
             catch: result
         });
 
+        await api.put('/bait/'+tags['user-id']);
+
         return {finish: true, 'message': finishResult.message};
     }
 
@@ -69,7 +71,7 @@ async function phase2(client, channel, tags, result) {
 
     sendChat(client, channel, tags ,phase2.message);
     setTimeout(async () => {
-        sendChat(client, channel, tags ,phase2.fish.fish.fish_name + " is trashing around the water!");
+        sendChat(client, channel, tags, phase2.fish.fish.fish_name + " is trashing around the water!");
 
         setTimeout(async () => {
             const phase3 = await api.post('/phase3', {

@@ -11,7 +11,7 @@ module.exports = function(client) {
         }
 
         const result = await api.post('/equip', {
-            twitchId: tags['user_id'],
+            twitchId: tags['user-id'],
             message: text[1]
         });
         
