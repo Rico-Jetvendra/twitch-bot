@@ -34,11 +34,9 @@ const client = new tmi.Client({
 const commandsPath = path.join(__dirname, 'commands');
 
 fs.readdirSync(commandsPath).forEach(file => {
-
     if (!file.endsWith('.js')) return;
 
     require(path.join(commandsPath, file))(client, io);
-
 });
 
 client.connect();

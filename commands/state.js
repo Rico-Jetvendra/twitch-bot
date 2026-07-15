@@ -1,6 +1,6 @@
 const api = require('../services/api');
 
-module.exports = function(client) {
+module.exports = function(client, io) {
     client.on('message', async (channel, tags, message, self) => {
         if (self) return;
 
@@ -12,6 +12,7 @@ module.exports = function(client) {
 
         const result = await api.get('/state');
         
+        io.emit("chatMessage", {platform: "twitch", channel: channel, tags: tags, message: result.message, command: true});
         client.say(channel, result.message);
     });
 };

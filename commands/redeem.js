@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const api       = require('../services/api');
 const ws        = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
 
-module.exports = function(client) {
+module.exports = function(client, io) {
   let twitch    = null;
 
   ws.on('message', async (message) => {
