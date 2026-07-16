@@ -1,4 +1,5 @@
 require('dotenv').config();
+const api = require('./services/api');
 
 const tmi = require('tmi.js');
 const fs = require('fs');
@@ -17,8 +18,24 @@ const io = new Server(server, {
     }
 });
 
-server.listen(3000, () => {
+let streamInfo = {};
+
+server.listen(3000, async () => {
     console.log("Socket.IO listening on port 3000");
+    
+    try {
+        const result = await api.twitchGet('/channels', {
+            broadcaster_id: process.env.BROADCASTER_ID
+        });
+
+        streamInfo = result.data[0];
+    } catch(err) {
+        console.error(err);
+    }
+});
+
+io.on("connection", (socket) => {
+    socket.emit("changeStreamInfo", streamInfo);
 });
 
 const client = new tmi.Client({

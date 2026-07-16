@@ -5,7 +5,7 @@ module.exports = function(client, io) {
         if (self) return;
 
         const text = message.split(" ");
-        const commands = ['!change', '!list', '!desc', '!equipe', '!fish', '!inv', '!record', '!state'];
+        const commands = ['!change', '!list', '!desc', '!equipe', '!fish', '!inv', '!record', '!state', '!stream'];
 
         if (commands.includes(text[0].toLowerCase())) {
           return;
