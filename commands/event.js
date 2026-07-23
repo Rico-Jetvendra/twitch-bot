@@ -15,7 +15,7 @@ const reminderMessages = [
   "🎣 New here? Type !fish to grab your first fishing rod and start your adventure!",
   "❤️ Enjoying the stream? Don't forget to hit the Follow button so you don't miss future adventures!",
   "💬 Lurkers are always welcome! Feel free to chat or simply enjoy the stream.",
-  "🥤 Hydration check! Grab a drink of water—you deserve it.",
+  "🥤 Hydration check! Grab a drink of water, you deserve it.",
   "🧘 Stretch your arms and shoulders every now and then. Your body will thank you!",
   "📺 If you're having fun, consider sharing the stream with a friend who loves cozy games and fishing.",
   "📹 Missed a stream? Check out the VODs over on YouTube!",
@@ -68,7 +68,7 @@ async function subscribeEvent(sessionId, type, version) {
       break;
   }
 
-  return await api.twitchPost('/eventsub/subscriptions', {
+  const sub = await api.twitchPost('/eventsub/subscriptions', {
     type,
     version,
     condition,
@@ -77,6 +77,8 @@ async function subscribeEvent(sessionId, type, version) {
       session_id: sessionId
     }
   });
+
+  return sub;
 }
 
 async function handleNotification(payload, client, io){
@@ -117,8 +119,10 @@ async function handleNotification(payload, client, io){
         const follower = payload.event;
         const message  = `Thanks for following, @${follower.user_name}! Welcome aboard!`;
 
+        console.log("FOLLOW");
+
         client.say(`#${process.env.CHANNEL}`, message);
-        io.emit("notice", {type:"follow", event: follower});
+        io.emit("follow", follower);
       break;
     }
     case "channel.subscribe": {
@@ -321,11 +325,14 @@ async function handleMessage(message, client, io) {
 
   switch (data.metadata.message_type) {
     case "session_welcome":
-      sessionId = data.payload.session.id;
       if(!reconnecting){
+        await deleteAllSubscriptions();
+        sessionId = data.payload.session.id;
+
         for (const [type, version] of Object.entries(eventName)) {
           try {
-            await subscribeEvent(sessionId, type, version);
+            const sub = await subscribeEvent(sessionId, type, version);
+            // console.log(`${type}: `, sub);
             // console.log(`Subscribed: ${type}`);
           } catch (err) {
             console.error(`Failed: ${type}`, err);
@@ -343,13 +350,16 @@ async function handleMessage(message, client, io) {
     case "session_keepalive":
       break;
     case "notification":
+      console.log("NOTIFICATION: ", data.payload);
       await handleNotification(data.payload, client, io);
       break;
     case "session_reconnect":
       reconnecting = true;
       connect(client, io, data.payload.session.reconnect_url);
+      console.log("RECONNECTING");
       break;
     case "revocation":
+      console.log("REVOCATION");
       const sub = data.payload.subscription;
       switch (sub.status) {
         case "authorization_revoked":
@@ -391,4 +401,12 @@ function connect(client, io, url = "wss://eventsub.wss.twitch.tv/ws") {
     oldWs.removeAllListeners();
     oldWs.close();
   }
+}
+
+async function deleteAllSubscriptions() {
+    const subs = await api.twitchGet('/eventsub/subscriptions');
+
+    for (const sub of subs.data) {
+        await api.twitchDelete(`/eventsub/subscriptions?id=${sub.id}`);
+    }
 }
